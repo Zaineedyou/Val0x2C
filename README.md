@@ -20,7 +20,7 @@ pnpm install
 pnpm dev
 ```
 
-The project expects the environment variables described in `server/_core/env.ts`. Google OAuth and the locally signed application session are the default authentication path. Manus OAuth is optional and is enabled only when `OAUTH_SERVER_URL` is set. Do not commit `.env` files or storage credentials.
+The project expects the environment variables described in `server/_core/env.ts`. Authentication uses Google OAuth and a locally signed application session. Do not commit `.env` files or storage credentials.
 
 ## Database
 
