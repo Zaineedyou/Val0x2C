@@ -6,6 +6,7 @@ import { SignJWT, jwtVerify } from "jose";
 import type { User } from "../../drizzle/schema";
 import * as db from "../db";
 import { ENV } from "./env";
+import { logger } from "./logger";
 
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.length > 0;
@@ -59,7 +60,7 @@ class SDKServer {
     cookieValue: string | undefined | null
   ): Promise<{ openId: string; appId: string; name: string } | null> {
     if (!cookieValue) {
-      console.warn("[Auth] Missing session cookie");
+      logger.warn("auth.session.missing");
       return null;
     }
 
@@ -70,7 +71,7 @@ class SDKServer {
       const { openId, appId, name } = payload as Record<string, unknown>;
 
       if (!isNonEmptyString(openId) || !isNonEmptyString(name)) {
-        console.warn("[Auth] Session payload missing required fields");
+        logger.warn("auth.session.invalid_payload");
         return null;
       }
 
@@ -80,7 +81,7 @@ class SDKServer {
         name,
       };
     } catch (error) {
-      console.warn("[Auth] Session verification failed", String(error));
+      logger.warn("auth.session.verification_failed", { error: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
@@ -98,10 +99,16 @@ class SDKServer {
     }
 
     const session = await this.verifySession(sessionToken);
-    if (!session) throw ForbiddenError("Invalid session cookie");
+    if (!session) {
+      logger.warn("auth.request.rejected", { reason: "invalid_session" });
+      throw ForbiddenError("Invalid session cookie");
+    }
 
     const user = await db.getUserByOpenId(session.openId);
-    if (!user) throw ForbiddenError("User not found");
+    if (!user) {
+      logger.warn("auth.request.rejected", { reason: "user_not_found", openId: session.openId });
+      throw ForbiddenError("User not found");
+    }
 
     await db.upsertUser({
       openId: user.openId,

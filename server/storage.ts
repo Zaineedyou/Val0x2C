@@ -3,12 +3,17 @@
 // Downloads return /manus-storage/{key} paths served via 307 redirect.
 
 import { ENV } from "./_core/env";
+import { logger } from "./_core/logger";
 
 function getForgeConfig() {
   const forgeUrl = ENV.forgeApiUrl;
   const forgeKey = ENV.forgeApiKey;
 
   if (!forgeUrl || !forgeKey) {
+    logger.error("storage.config.missing", "Storage credentials are not configured", {
+      hasForgeUrl: Boolean(forgeUrl),
+      hasForgeKey: Boolean(forgeKey),
+    });
     throw new Error(
       "Storage config missing: set BUILT_IN_FORGE_API_URL and BUILT_IN_FORGE_API_KEY",
     );
@@ -33,8 +38,9 @@ export async function storagePut(
   data: Buffer | Uint8Array | string,
   contentType = "application/octet-stream",
 ): Promise<{ key: string; url: string }> {
-  const { forgeUrl, forgeKey } = getForgeConfig();
   const key = appendHashSuffix(normalizeKey(relKey));
+  logger.info("storage.put.started", { key, bytes: typeof data === "string" ? data.length : data.length, contentType });
+  const { forgeUrl, forgeKey } = getForgeConfig();
 
   // 1. Get presigned PUT URL from Forge
   const presignUrl = new URL("v1/storage/presign/put", forgeUrl + "/");
@@ -46,11 +52,15 @@ export async function storagePut(
 
   if (!presignResp.ok) {
     const msg = await presignResp.text().catch(() => presignResp.statusText);
+    logger.error("storage.presign.put.failed", `HTTP ${presignResp.status}`, { key, status: presignResp.status });
     throw new Error(`Storage presign failed (${presignResp.status}): ${msg}`);
   }
 
   const { url: s3Url } = (await presignResp.json()) as { url: string };
-  if (!s3Url) throw new Error("Forge returned empty presign URL");
+  if (!s3Url) {
+    logger.error("storage.presign.put.empty", "Forge returned empty presign URL", { key });
+    throw new Error("Forge returned empty presign URL");
+  }
 
   // 2. PUT file directly to S3
   const blob =
@@ -65,9 +75,11 @@ export async function storagePut(
   });
 
   if (!uploadResp.ok) {
+    logger.error("storage.put.failed", `HTTP ${uploadResp.status}`, { key, status: uploadResp.status });
     throw new Error(`Storage upload to S3 failed (${uploadResp.status})`);
   }
 
+  logger.info("storage.put.completed", { key, bytes: typeof data === "string" ? data.length : data.length });
   return { key, url: `/manus-storage/${key}` };
 }
 
@@ -89,6 +101,7 @@ export async function storageGetSignedUrl(relKey: string): Promise<string> {
 
   if (!resp.ok) {
     const msg = await resp.text().catch(() => resp.statusText);
+    logger.error("storage.presign.get.failed", `HTTP ${resp.status}`, { key, status: resp.status });
     throw new Error(`Storage signed URL failed (${resp.status}): ${msg}`);
   }
 

@@ -6,6 +6,7 @@ import { upsertUser, getUserByOpenId } from "../db";
 import { getSessionCookieOptions } from "./cookies";
 import { ENV } from "./env";
 import { sdk } from "./sdk";
+import { logger } from "./logger";
 
 const STATE_COOKIE = "val0x2c_google_state";
 const GOOGLE_AUTHORIZE = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -23,6 +24,7 @@ function configured() {
 export function registerGoogleAuthRoutes(app: Express) {
   app.get("/api/auth/google", (req: Request, res: Response) => {
     if (!configured()) {
+      logger.error("auth.google.config_missing", "Google OAuth credentials are not configured");
       res.status(503).send("Google OAuth belum dikonfigurasi. Isi GOOGLE_CLIENT_ID dan GOOGLE_CLIENT_SECRET.");
       return;
     }
@@ -57,6 +59,7 @@ export function registerGoogleAuthRoutes(app: Express) {
       && state.length === expected!.length
       && crypto.timingSafeEqual(Buffer.from(state), Buffer.from(expected!));
     if (typeof code !== "string" || !stateMatches) {
+      logger.warn("auth.google.callback.rejected", { reason: "invalid_state_or_code" });
       res.status(400).send("OAuth state tidak valid atau sudah kedaluwarsa.");
       return;
     }
@@ -81,9 +84,10 @@ export function registerGoogleAuthRoutes(app: Express) {
       if (!user) throw new Error("User creation failed");
       const session = await sdk.createSessionToken(user.openId, { name: user.name || "Google user", expiresInMs: ONE_YEAR_MS });
       res.cookie(COOKIE_NAME, session, { ...getSessionCookieOptions(req), maxAge: ONE_YEAR_MS });
+      logger.info("auth.google.callback.completed", { userId: user.id });
       res.redirect("/");
     } catch (authError) {
-      console.error("[Google OAuth] callback failed", authError);
+      logger.error("auth.google.callback.failed", authError);
       res.redirect("/?auth_error=google_callback_failed");
     }
   });
