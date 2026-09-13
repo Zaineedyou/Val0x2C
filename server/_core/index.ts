@@ -9,6 +9,7 @@ import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { ENV } from "./env";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -36,7 +37,13 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
-  registerOAuthRoutes(app);
+  // This project uses Google OAuth by default. The Manus OAuth endpoints are
+  // only meaningful when their upstream server is configured; registering
+  // them unconditionally made every Google-only deployment log a misleading
+  // OAUTH_SERVER_URL error at startup.
+  if (ENV.oAuthServerUrl) {
+    registerOAuthRoutes(app);
+  }
   registerGoogleAuthRoutes(app);
   // tRPC API
   app.use(
