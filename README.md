@@ -1,6 +1,6 @@
-# DropVault
+# Val0x2C
 
-DropVault is a compact MediaFire-style file hosting app built with React, tRPC, Drizzle, MySQL/TiDB, and the built-in object storage layer.
+Val0x2C is a compact MediaFire-style file hosting app built with React, tRPC, Drizzle, MySQL/TiDB, and the built-in object storage layer.
 
 ## Included
 
