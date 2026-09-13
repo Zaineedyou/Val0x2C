@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { files, InsertFile, InsertUser, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,33 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+export async function listFilesByOwner(ownerId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  return db.select().from(files).where(eq(files.ownerId, ownerId)).orderBy(desc(files.createdAt));
+}
+
+export async function createFile(file: InsertFile) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.insert(files).values(file);
+  const rows = await db.select().from(files).where(eq(files.shareToken, file.shareToken)).limit(1);
+  return rows[0];
+}
+
+export async function deleteFileByOwner(fileId: number, ownerId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db.select().from(files).where(eq(files.id, fileId)).limit(1);
+  const file = rows[0];
+  if (!file || file.ownerId !== ownerId) return false;
+  await db.delete(files).where(eq(files.id, fileId));
+  return true;
+}
+
+export async function getFileByShareToken(shareToken: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db.select().from(files).where(eq(files.shareToken, shareToken)).limit(1);
+  return rows[0];
+}
