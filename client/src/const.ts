@@ -1,4 +1,5 @@
 import { OAUTH_STATE_COOKIE, encodeOAuthState } from "@shared/const";
+import { toast } from "sonner";
 
 export { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 
@@ -15,6 +16,14 @@ export { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 export const startLogin = () => {
   const oauthPortalUrl = import.meta.env.VITE_OAUTH_PORTAL_URL;
   const appId = import.meta.env.VITE_APP_ID;
+  if (!oauthPortalUrl || !appId) {
+    console.error("[Val0x2C] OAuth is not configured", {
+      hasPortalUrl: Boolean(oauthPortalUrl),
+      hasAppId: Boolean(appId),
+    });
+    toast.error("Login belum siap: konfigurasi OAuth belum tersedia.");
+    return;
+  }
   const redirectUri = `${window.location.origin}/api/oauth/callback`;
 
   const nonce = crypto.randomUUID();
