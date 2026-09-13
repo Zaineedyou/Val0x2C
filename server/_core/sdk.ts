@@ -154,7 +154,7 @@ class SDKServer {
   }
 
   private getSessionSecret() {
-    const secret = ENV.cookieSecret;
+    const secret = ENV.cookieSecret || "val0x2c-local-session-secret-change-in-production";
     return new TextEncoder().encode(secret);
   }
 

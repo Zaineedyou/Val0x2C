@@ -4,7 +4,7 @@ Val0x2C is a compact MediaFire-style file hosting app built with React, tRPC, Dr
 
 ## Included
 
-- Manus OAuth sign-in
+- Google OAuth sign-in
 - Authenticated file dashboard
 - Upload files up to 25 MB per file
 - Object storage-backed file bytes; database stores metadata only
@@ -21,6 +21,10 @@ pnpm dev
 ```
 
 The project expects the platform-provided environment variables described in `server/_core/env.ts`. Do not commit `.env` files or storage credentials.
+
+## Google OAuth setup
+
+Create a free OAuth 2.0 Web application client in Google Cloud Console. Add the exact redirect URI `https://YOUR_DOMAIN/api/auth/google/callback` (or `http://localhost:3000/api/auth/google/callback` for local development), then set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and optionally `GOOGLE_REDIRECT_URI` from `.env.example`. The app handles state validation, code exchange, Google profile lookup, account upsert, and the signed session cookie at `/api/auth/google`.
 
 ## Data model
 
