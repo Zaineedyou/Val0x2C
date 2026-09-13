@@ -4,13 +4,11 @@ import type { Request } from "express";
 export type LogFields = Record<string, unknown>;
 
 function write(level: "info" | "warn" | "error", event: string, fields: LogFields = {}) {
-  const entry = {
-    timestamp: new Date().toISOString(),
-    level,
-    event,
-    ...fields,
-  };
-  const output = JSON.stringify(entry);
+  const details = Object.entries(fields)
+    .filter(([, value]) => value !== undefined)
+    .map(([key, value]) => `${key}=${typeof value === "string" ? JSON.stringify(value) : String(value)}`)
+    .join(" ");
+  const output = `[${new Date().toISOString()}] [${level.toUpperCase()}] ${event}${details ? ` ${details}` : ""}`;
   if (level === "error") console.error(output);
   else if (level === "warn") console.warn(output);
   else console.log(output);
