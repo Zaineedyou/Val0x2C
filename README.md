@@ -1,6 +1,6 @@
 # Val0x2C
 
-Val0x2C is a compact MediaFire-style file hosting app built with React, tRPC, Drizzle, MySQL/TiDB, and the built-in object storage layer.
+Val0x2C is a compact MediaFire-style file hosting app built with React, tRPC, Drizzle, PostgreSQL, and the built-in object storage layer.
 
 ## Included
 
@@ -21,6 +21,10 @@ pnpm dev
 ```
 
 The project expects the platform-provided environment variables described in `server/_core/env.ts`. Do not commit `.env` files or storage credentials.
+
+## Database
+
+PostgreSQL is the primary database because the application has relational ownership, account, and file metadata with transactional writes. Set `DATABASE_URL` to a PostgreSQL connection string such as `postgresql://user:password@host:5432/val0x2c`, then run `pnpm db:push` to generate and apply the Drizzle migration.
 
 ## Google OAuth setup
 
